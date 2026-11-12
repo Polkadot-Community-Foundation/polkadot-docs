@@ -44,3 +44,10 @@ jobs:
         # a plugin removed after the feed was written. Runs locally the same way:
         #   mkdocs build -d site && python scripts/check_ai_feed.py site
         run: python scripts/check_ai_feed.py site
+
+      - name: Check robots.txt and sitemap.xml
+        # The built site must serve both from its root and robots.txt must name
+        # the sitemap. Sitemap entries the build has no page for are warnings.
+        # Runs locally the same way:
+        #   mkdocs build -d site && python scripts/check_search_files.py site
+        run: python scripts/check_search_files.py site
