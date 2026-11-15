@@ -33,6 +33,7 @@ polkadart:
   output_dir: lib/generated
   chains:
     polkadot: wss://rpc.polkadot.io
+    polkadot_asset_hub: wss://polkadot-asset-hub-rpc.polkadot.io
     kusama: wss://kusama-rpc.polkadot.io
     custom: wss://your-node.example.com
 ```
@@ -51,20 +52,22 @@ dart run polkadart_cli:generate -v
 
 ### Use Generated Types
 
+Since the Asset Hub migration, account balances live on Polkadot Hub (Asset Hub), so query them there rather than on the relay chain:
+
 ```dart
-import 'package:your_app/generated/polkadot/polkadot.dart';
+import 'package:your_app/generated/polkadot_asset_hub/polkadot_asset_hub.dart';
 import 'package:polkadart/polkadart.dart';
 import 'package:ss58/ss58.dart';
 
-final provider = Provider.fromUri(Uri.parse('wss://rpc.polkadot.io'));
-final polkadot = Polkadot(provider);
-  
+final provider = Provider.fromUri(Uri.parse('wss://polkadot-asset-hub-rpc.polkadot.io'));
+final assetHub = PolkadotAssetHub(provider);
+
 // Account from SS58 address
 final account = Address.decode('19t9Q2ay58hMDaeg6eeBhqmHsRnc2jDMV3cYYw9zbc59HLj');
 
 // Retrieve Account Balance
-final accountInfo = await polkadot.query.system.account(account.pubkey);
-print('Balance: ${accountInfo.data.free}')
+final accountInfo = await assetHub.query.system.account(account.pubkey);
+print('Balance: ${accountInfo.data.free}');
 ```
 
 ### Creating an API Instance
