@@ -14,7 +14,7 @@ categories: Infrastructure
 In the first phase, a metanode operator is a [validator](/node-infrastructure/run-a-validator/requirements/) operator who also provides the minimum services that [Polkadot Products](/apps/) need:
 
 - Producing blocks for Asset Hub and People Chain as [collators](/node-infrastructure/run-a-collator/).
-- Serving smoldot [light clients](/reference/tools/light-clients/) over Web Real-Time Communication (WebRTC) for the relay chain, Asset Hub, and People Chain, which requires the node configuration in [Serve Light Clients over WebRTC](#serve-light-clients-over-webrtc).
+- Serving smoldot [light clients](/reference/tools/light-clients/) over Web Real-Time Communication (WebRTC) for the relay chain, Asset Hub, and People Chain. [Serve Light Clients over WebRTC](#serve-light-clients-over-webrtc) covers the node configuration this requires.
 - Serving remote procedure call (RPC) requests for the relay chain, Asset Hub, and People Chain.
 
 You can run the validator and the collators on separate machines or together on a single machine. [Hardware Requirements](#hardware-requirements) covers both options.
@@ -43,34 +43,41 @@ Every machine needs a public IP address and must run Linux with kernel 5.16 or l
 
 ## Serve Light Clients over WebRTC
 
-In-browser light clients connect to full nodes over WebRTC. WebRTC needs no domain name, TLS certificate, or reverse proxy, but it runs over UDP and needs its own network configuration. WebRTC is only supported by the litep2p network backend, which is the default. Light client connections count toward the `--in-peers-light` limit, which defaults to 500.
+In-browser light clients connect to full nodes over WebRTC. Unlike secure WebSocket connections, WebRTC needs no domain name, TLS certificate, or reverse proxy. It runs over UDP, so it needs its own firewall and port configuration.
+
+WebRTC works only on the litep2p network backend, which is the default. Each node accepts up to 500 light client connections. You can change this limit with `--in-peers-light`.
 
 ### Enable WebRTC Listening
 
-Full nodes listen for WebRTC connections by default. Starting with `polkadot-stable2612`, validators and collators also listen for WebRTC connections by default, so the validator serves relay chain light clients and the collators serve Asset Hub and People Chain light clients. On earlier releases, validators and collators do not listen for WebRTC connections, so serve light clients from separate full nodes for the relay chain, Asset Hub, and People Chain.
+Which nodes listen for WebRTC connections by default depends on the release:
 
-If you pass explicit `--listen-addr` flags to a node, they replace all default listen addresses. Add a WebRTC listen address yourself, for example `/ip4/0.0.0.0/udp/30333/webrtc-direct` or `/ip6/::/udp/30333/webrtc-direct`.
+- **`polkadot-stable2612` and later**: Every node listens, including validators and collators. Your validator serves relay chain light clients, and your collators serve Asset Hub and People Chain light clients.
+- **Earlier releases**: Validators and collators do not listen. Run a separate full node for each of the relay chain, Asset Hub, and People Chain to serve light clients.
+
+If you pass `--listen-addr` to a node, your addresses replace all default listen addresses, including the WebRTC ones. In that case, add a WebRTC listen address yourself, for example `/ip4/0.0.0.0/udp/30333/webrtc-direct` or `/ip6/::/udp/30333/webrtc-direct`.
 
 ### Configure Ports and Public Addresses
 
-Each node listens for WebRTC on UDP, using the same port number as its P2P TCP port: 30333 unless you set `--port`. A collator listens on 30333 for the parachain and 30334 for the relay chain by default. When you run several nodes on a single machine, give each one distinct ports.
+A node listens for WebRTC on the UDP port with the same number as its P2P TCP port. The default is 30333, which you can change with `--port`. A collator uses two ports by default, 30333 for the parachain and 30334 for the relay chain. When you run several nodes on a single machine, give each node its own ports.
 
-Open every WebRTC UDP port in your firewall. Existing rules for the TCP ports do not cover UDP. If a node is behind network address translation (NAT) or you redirect ports, forward the public UDP port to the local listen port and add a matching public address so light clients can discover it:
+Open every WebRTC UDP port in your firewall. Existing rules for the TCP ports do not cover UDP.
+
+If a node is behind network address translation (NAT), or its public port differs from its listen port, forward the public UDP port to the listen port. Then pass the public address to the node, so light clients can discover the node at that address:
 
 ```bash
 --public-addr /ip4/INSERT_PUBLIC_IP/udp/INSERT_PUBLIC_PORT/webrtc-direct
 ```
 
-Replace `ip4` with `ip6` or `dns` if needed. Do not append `/certhash/...` or `/p2p/...` to WebRTC listen or public addresses. The node adds both itself and can refuse to start if they are present.
+For an IPv6 address or a DNS name, use `ip6` or `dns` instead of `ip4`. Do not append `/certhash/...` or `/p2p/...` to WebRTC listen or public addresses. The node adds both parts itself and can refuse to start if they are present.
 
-To stop a node from serving WebRTC, pass `--listen-addr` with TCP and WS addresses only. Blocking the UDP port is not enough, because the node still advertises its WebRTC address and light clients fail to connect.
+To stop a node from serving WebRTC, pass `--listen-addr` with TCP and WS addresses only. Blocking the UDP port is not enough. The node still advertises its WebRTC address, and light clients that try this address fail to connect.
 
 ### Verify WebRTC Connectivity
 
-Check each node that serves light clients in the following ways:
+Run the following checks on each node that serves light clients:
 
-1. Check the node's startup logs for a `WebRTC certhash: uEi...` line, which shows that the node listens for WebRTC connections.
-2. Query the node's local listen addresses through its RPC endpoint, adjusting the port if the node does not use 9944:
+1. Look for a `WebRTC certhash: uEi...` line in the node's startup logs. This line confirms that the node listens for WebRTC connections.
+2. Query the node's listen addresses through its RPC endpoint. Change the port if the node does not use 9944:
 
     ```bash
     --8<-- 'code/node-infrastructure/webrtc/local-listen-addresses.sh'
@@ -84,4 +91,4 @@ Check each node that serves light clients in the following ways:
     --8<-- 'code/node-infrastructure/webrtc/check-webrtc-reachable.sh'
     ```
 
-    The command prints `WebRTC reachable` only if the request reached the node and a STUN success response with the matching transaction ID came back. No output means the WebRTC endpoint is not reachable.
+    The command prints `WebRTC reachable` if the node answers the request. If the command prints nothing, the WebRTC port is not reachable from that machine.

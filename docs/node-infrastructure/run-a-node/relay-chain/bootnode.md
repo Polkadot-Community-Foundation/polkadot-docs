@@ -1,6 +1,6 @@
 ---
 title: Set Up a Bootnode
-description: Learn how to configure and run a bootnode for Polkadot, including P2P, WS, and WebRTC connections and network key management.
+description: Learn how to configure and run a Polkadot bootnode that accepts P2P, WS, and WebRTC connections, and how to manage its node key.
 categories: Infrastructure
 ---
 
@@ -10,7 +10,7 @@ categories: Infrastructure
 
 Bootnodes are essential for helping blockchain nodes discover peers and join the network. When a node starts, it needs to find other nodes, and bootnodes provide an initial point of contact. Once connected, a node can expand its peer connections and play its role in the network, like participating as a validator.
 
-This guide will walk you through setting up a Polkadot bootnode, configuring P2P, WebSocket (WS), and Web Real-Time Communication (WebRTC) connections, and managing network keys. You'll also learn how to test your bootnode to ensure it is running correctly and accessible to other nodes.
+This guide walks you through setting up a Polkadot bootnode that accepts P2P, WebSocket (WS), and Web Real-Time Communication (WebRTC) connections. You also learn how to manage the node key and how to test that the bootnode is running correctly and is accessible to other nodes.
 
 ## Prerequisites
 
@@ -34,7 +34,9 @@ Bootnodes accept connections from other nodes and light clients through the foll
     This is not enabled by default on non-validator nodes like archive RPC nodes.
 
 - **P2P/WS**: A WebSocket (WS) connection, also configured via `--listen-addr`.
-- **P2P/WebRTC**: A WebRTC connection over UDP, which in-browser light clients such as smoldot use. It needs no domain name, TLS certificate, or reverse proxy. WebRTC is only supported by the litep2p network backend, which is the default. Light client connections count toward the `--in-peers-light` limit, which defaults to 500.
+- **P2P/WebRTC**: A WebRTC connection over UDP, also configured via `--listen-addr`. In-browser light clients such as smoldot connect this way. WebRTC needs no domain name, TLS certificate, or reverse proxy.
+
+WebRTC works only on the litep2p network backend, which is the default. The bootnode accepts up to 500 light client connections. You can change this limit with `--in-peers-light`.
 
 ## Node Key
 
@@ -64,28 +66,30 @@ A bootnode can be run as follows:
  --listen-addr /ip4/0.0.0.0/udp/30310/webrtc-direct
  ```
 
-This assigns p2p to TCP port 30310, p2p/ws to TCP port 30311, and p2p/webrtc to UDP port 30310.
+This assigns P2P to TCP port 30310, P2P/WS to TCP port 30311, and P2P/WebRTC to UDP port 30310. To also accept WebRTC connections over IPv6, add `--listen-addr /ip6/::/udp/30310/webrtc-direct`.
 
 !!! warning
-    Passing `--listen-addr` replaces all default listen addresses, including the WebRTC ones that a full node otherwise listens on. If you omit the `webrtc-direct` address, the bootnode does not accept WebRTC connections. To also listen on IPv6, add `--listen-addr /ip6/::/udp/30310/webrtc-direct`.
+    The addresses you pass with `--listen-addr` replace all default listen addresses, including the WebRTC ones. If you leave out the `webrtc-direct` address, the bootnode does not accept WebRTC connections.
 
 ### Configure WebRTC Networking
 
-If the bootnode's public address or port differs from its local listen address or port, for example because it runs behind network address translation (NAT) or you redirect ports, add a matching public address. The node advertises this address in the distributed hash table (DHT), so light clients can discover it:
+Open UDP port 30310 in your firewall. Existing rules for TCP port 30310 do not cover UDP.
+
+If the bootnode is behind network address translation (NAT), or its public port differs from its listen port, forward the public UDP port to the listen port. Then pass the public address to the node:
 
 ```bash
---public-addr /ip4/INSERT_PUBLIC_IP/udp/30310/webrtc-direct
+--public-addr /ip4/INSERT_PUBLIC_IP/udp/INSERT_PUBLIC_PORT/webrtc-direct
 ```
 
-Replace `ip4` with `ip6` or `dns` if needed. Do not append `/certhash/...` or `/p2p/...` to WebRTC listen or public addresses. The node adds both itself and can refuse to start if they are present.
+The node advertises this address in the distributed hash table (DHT), where light clients discover it.
 
-Open the UDP port in your firewall. Existing rules for the TCP port do not cover UDP. If the bootnode is behind NAT, forward the public UDP port to the local listen port.
+For an IPv6 address or a DNS name, use `ip6` or `dns` instead of `ip4`. Do not append `/certhash/...` or `/p2p/...` to WebRTC listen or public addresses. The node adds both parts itself and can refuse to start if they are present.
 
-To stop a node from serving WebRTC, pass `--listen-addr` with TCP and WS addresses only. Blocking the UDP port is not enough, because the node still advertises its WebRTC address and light clients fail to connect.
+To stop the bootnode from serving WebRTC, remove the `webrtc-direct` listen address. Blocking the UDP port is not enough. The node still advertises its WebRTC address, and light clients that try this address fail to connect.
 
 ## Testing Bootnode Connection
 
-If the preceding node is running with DNS name `dot-bootnode.stakeworld.io` and node-id `12D3KooWAb5MyC1UJiEQJk4Hg4B2Vi3AJdqSUhTGYUqSnEqCFMFg` then the following P2P and P2P/WS commands should output `syncing 1 peers`.
+If the preceding node is running with DNS name `dot-bootnode.stakeworld.io` and node-id `12D3KooWAb5MyC1UJiEQJk4Hg4B2Vi3AJdqSUhTGYUqSnEqCFMFg`, then the following P2P and P2P/WS commands should output `syncing 1 peers`.
 
 !!!tip
     You can add `-lsub-libp2p=trace` on the end to get libp2p trace logging for debugging purposes.
@@ -114,10 +118,10 @@ polkadot --chain polkadot \
 
 ### P2P/WebRTC
 
-A node cannot dial WebRTC addresses, so test the WebRTC channel in the following ways instead:
+A node cannot dial WebRTC addresses, so you cannot test this channel with a second node. Run the following checks instead:
 
-1. Check the bootnode's startup logs for a `WebRTC certhash: uEi...` line, which shows that the node listens for WebRTC connections.
-2. Query the bootnode's local listen addresses through its RPC endpoint:
+1. Look for a `WebRTC certhash: uEi...` line in the bootnode's startup logs. This line confirms that the bootnode listens for WebRTC connections.
+2. Query the bootnode's listen addresses through its RPC endpoint. Change the port if the bootnode does not use 9944:
 
     ```bash
     --8<-- 'code/node-infrastructure/webrtc/local-listen-addresses.sh'
@@ -131,14 +135,14 @@ A node cannot dial WebRTC addresses, so test the WebRTC channel in the following
     --8<-- 'code/node-infrastructure/webrtc/check-webrtc-reachable.sh'
     ```
 
-    The command prints `WebRTC reachable` only if the request reached the node and a STUN success response with the matching transaction ID came back. No output means the WebRTC endpoint is not reachable.
+    The command prints `WebRTC reachable` if the bootnode answers the request. If the command prints nothing, the WebRTC port is not reachable from that machine.
 
 ## Add WebRTC Addresses to the Chain Specification
 
-For light clients to bootstrap over WebRTC, network operators need to add the bootnode's WebRTC address to the `bootNodes` field of the chain specification, alongside the existing TCP and WS addresses. The address has the following form:
+Light clients find bootnodes through the `bootNodes` field of the chain specification. For light clients to reach your bootnode over WebRTC, add its WebRTC address to this field, next to the existing TCP and WS addresses. The address has the following form:
 
 ```text
 /dns/INSERT_DNS_NAME/udp/INSERT_PORT/webrtc-direct/certhash/INSERT_CERTHASH/p2p/INSERT_PEER_ID
 ```
 
-Take the certhash and peer ID from the `system_localListenAddresses` response or the startup logs. Both are derived from the node key, so they only change if the node key changes.
+Copy the certhash and peer ID from the `system_localListenAddresses` response or the startup logs. Both values are derived from the node key, so they only change if the node key changes.
