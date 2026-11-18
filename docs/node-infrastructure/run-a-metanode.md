@@ -7,14 +7,14 @@ categories: Infrastructure
 # Run a Metanode
 
 !!! warning "Under Construction"
-    This page is under construction and its content can change. It covers what a metanode runs in its first phase, the hardware it needs, and how to serve light clients over WebRTC. Full setup instructions will be added in a later update.
+    This page is under construction and its content can change. It covers what a metanode runs in its first phase, the hardware it needs, and how to serve light clients over Web Real-Time Communication (WebRTC). Full setup instructions will be added in a later update.
 
 ## Introduction
 
 In the first phase, a metanode operator is a [validator](/node-infrastructure/run-a-validator/requirements/) operator who also provides the minimum services that [Polkadot Products](/apps/) need:
 
 - Producing blocks for Asset Hub and People Chain as [collators](/node-infrastructure/run-a-collator/).
-- Serving smoldot [light clients](/reference/tools/light-clients/) over Web Real-Time Communication (WebRTC) for the relay chain, Asset Hub, and People Chain. [Serve Light Clients over WebRTC](#serve-light-clients-over-webrtc) covers the node configuration this requires.
+- Serving smoldot [light clients](/reference/tools/light-clients/) over WebRTC for the relay chain, Asset Hub, and People Chain. [Serve Light Clients over WebRTC](#serve-light-clients-over-webrtc) covers the node configuration this requires.
 - Serving remote procedure call (RPC) requests for the relay chain, Asset Hub, and People Chain.
 
 You can run the validator and the collators on separate machines or together on a single machine. [Hardware Requirements](#hardware-requirements) covers both options.
@@ -51,7 +51,7 @@ WebRTC works only on the litep2p network backend, which is the default. Each nod
 
 Which nodes listen for WebRTC connections by default depends on the release:
 
-- **`polkadot-stable2612` and later**: Every node listens, including validators and collators. Your validator serves relay chain light clients, and your collators serve Asset Hub and People Chain light clients.
+- **Release `polkadot-stable2612` and later**: Every node listens, including validators and collators. Your validator serves relay chain light clients, and your collators serve Asset Hub and People Chain light clients.
 - **Earlier releases**: Validators and collators do not listen. Run a separate full node for each of the relay chain, Asset Hub, and People Chain to serve light clients.
 
 If you pass `--listen-addr` to a node, your addresses replace all default listen addresses, including the WebRTC ones. In that case, add a WebRTC listen address yourself, for example `/ip4/0.0.0.0/udp/30333/webrtc-direct` or `/ip6/::/udp/30333/webrtc-direct`.
@@ -70,7 +70,7 @@ If a node is behind network address translation (NAT), or its public port differ
 
 For an IPv6 address or a DNS name, use `ip6` or `dns` instead of `ip4`. Do not append `/certhash/...` or `/p2p/...` to WebRTC listen or public addresses. The node adds both parts itself and can refuse to start if they are present.
 
-To stop a node from serving WebRTC, pass `--listen-addr` with TCP and WS addresses only. Blocking the UDP port is not enough. The node still advertises its WebRTC address, and light clients that try this address fail to connect.
+To stop a node from serving WebRTC, pass `--listen-addr` with TCP and WebSocket addresses only. Blocking the UDP port is not enough. The node still advertises its WebRTC address, and light clients that try this address fail to connect.
 
 ### Verify WebRTC Connectivity
 

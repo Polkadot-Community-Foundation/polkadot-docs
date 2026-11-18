@@ -75,21 +75,21 @@ This assigns P2P to TCP port 30310, P2P/WS to TCP port 30311, and P2P/WebRTC to 
 
 Open UDP port 30310 in your firewall. Existing rules for TCP port 30310 do not cover UDP.
 
-If the bootnode is behind network address translation (NAT), or its public port differs from its listen port, forward the public UDP port to the listen port. Then pass the public address to the node:
+If the bootnode is behind network address translation (NAT), or its public port differs from its listen port, forward the public UDP port to the listen port. Then pass the public address to the bootnode:
 
 ```bash
 --public-addr /ip4/INSERT_PUBLIC_IP/udp/INSERT_PUBLIC_PORT/webrtc-direct
 ```
 
-The node advertises this address in the distributed hash table (DHT), where light clients discover it.
+The bootnode advertises this address in the distributed hash table (DHT), where light clients discover it.
 
-For an IPv6 address or a DNS name, use `ip6` or `dns` instead of `ip4`. Do not append `/certhash/...` or `/p2p/...` to WebRTC listen or public addresses. The node adds both parts itself and can refuse to start if they are present.
+For an IPv6 address or a DNS name, use `ip6` or `dns` instead of `ip4`. Do not append `/certhash/...` or `/p2p/...` to WebRTC listen or public addresses. The bootnode adds both parts itself and can refuse to start if they are present.
 
-To stop the bootnode from serving WebRTC, remove the `webrtc-direct` listen address. Blocking the UDP port is not enough. The node still advertises its WebRTC address, and light clients that try this address fail to connect.
+To stop the bootnode from serving WebRTC, remove the `webrtc-direct` listen address. Blocking the UDP port is not enough. The bootnode still advertises its WebRTC address, and light clients that try this address fail to connect.
 
 ## Testing Bootnode Connection
 
-If the preceding node is running with DNS name `dot-bootnode.stakeworld.io` and node-id `12D3KooWAb5MyC1UJiEQJk4Hg4B2Vi3AJdqSUhTGYUqSnEqCFMFg`, then the following P2P and P2P/WS commands should output `syncing 1 peers`.
+If the preceding node is running with DNS name `dot-bootnode.stakeworld.io` and peer ID `12D3KooWAb5MyC1UJiEQJk4Hg4B2Vi3AJdqSUhTGYUqSnEqCFMFg`, then the following P2P and P2P/WS commands should output `syncing 1 peers`.
 
 !!!tip
     You can add `-lsub-libp2p=trace` on the end to get libp2p trace logging for debugging purposes.
